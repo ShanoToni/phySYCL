@@ -99,6 +99,15 @@ float determinant(const mat3 &matrix) {
   }
 }
 
+float determinant(const mat4 &matrix) {
+  float result = 0.0f;
+  mat4 coF = cofactor(matrix);
+  for (int i = 0; i < 4; i++) {
+    result += matrix.asArray[4 * 0 + i] * coF[0][i];
+  }
+  return result;
+}
+
 mat2 cut(const mat3 &mat, int row, int col) {
   mat2 result;
   int index = 0;
@@ -116,6 +125,24 @@ mat2 cut(const mat3 &mat, int row, int col) {
   return result;
 }
 
+mat3 cut(const mat4 &mat, int row, int col) {
+  mat3 result;
+  int index = 0;
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      if (i == row || j == col) {
+        continue;
+      }
+      int target = index++;
+      int source = 4 * i + j;
+
+      result.asArray[target] = mat.asArray[source];
+    }
+  }
+  return result;
+}
+
 mat2 minor(const mat2 &mat) { return mat2(mat._22, mat._21, mat._12, mat._11); }
 
 mat3 minor(const mat3 &mat) {
@@ -126,6 +153,73 @@ mat3 minor(const mat3 &mat) {
     }
   }
 }
+
+mat4 minor(const mat4 &mat) {
+  mat4 result;
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      result[i][j] = determinant(cut(mat, i, j));
+    }
+  }
+  return result;
+}
+
+mat2 inverse(const mat2 &mat) {
+  float det = determinant(mat);
+  if (CMP(det, 0.0f)) {
+    return mat2();
+  }
+  return adjugate(mat) * (1.0f * det);
+}
+
+mat3 inverse(const mat3 &mat) {
+  float det = determinant(mat);
+  if (CMP(det, 0.0f)) {
+    return mat3();
+  }
+  return adjugate(mat) * (1.0f * det);
+}
+
+mat4 inverse(const mat4 &mat) {
+  float det = determinant(mat);
+  if (CMP(det, 0.0f)) {
+    return mat4();
+  }
+  return adjugate(mat) * (1.0f * det);
+}
+
+mat4 translation(float x, float y, float z) {
+  return mat4(1.0f, 0.0f, 0.0f, 0.0f, //
+              0.0f, 1.0f, 0.0f, 0.0f, //
+              0.0f, 0.0f, 1.0f, 0.0f, //
+              x, y, z, 1.0f);
+}
+
+mat4 translation(const vec3 &pos) {
+  return mat4(1.0f, 0.0f, 0.0f, 0.0f, //
+              0.0f, 1.0f, 0.0f, 0.0f, //
+              0.0f, 0.0f, 1.0f, 0.0f, //
+              pos.x, pos.y, pos.z, 1.0f);
+}
+
+vec3 getTranslation(const mat4 &mat) { return vec3{mat._41, mat._42, mat._43}; }
+
+mat4 scale(float x, float y, float z) {
+  return mat4(x, 0.0f, 0.0f, 0.0f, //
+              0.0f, y, 0.0f, 0.0f, //
+              0.0f, 0.0f, z, 0.0f, //
+              0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+mat4 scale(const vec3 &pos) {
+  return mat4(pos.x, 0.0f, 0.0f, 0.0f, //
+              0.0f, pos.y, 0.0f, 0.0f, //
+              0.0f, 0.0f, pos.z, 0.0f, //
+              0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+vec3 getScale(const mat4 &mat) { return vec3{mat._11, mat._22, mat._33}; }
 
 void cofactor(float *out, const float *minor, int rows, int cols) {
   for (int i = 0; i < rows; i++) {
@@ -147,5 +241,11 @@ mat2 cofactor(const mat2 &mat) {
 mat3 cofactor(const mat3 &mat) {
   mat3 result;
   cofactor(result.asArray, minor(mat).asArray, 3, 3);
+  return result;
+}
+
+mat4 cofactor(const mat4 &mat) {
+  mat4 result;
+  cofactor(result.asArray, minor(mat).asArray, 4, 4);
   return result;
 }

@@ -1,5 +1,8 @@
 #ifndef _H_MATH_MATRICES_
 #define _H_MATH_MATRICES_
+
+#include "vectors.hpp"
+
 struct mat2 {
   union {
     struct {
@@ -106,6 +109,7 @@ mat4 operator*(const mat4 &matA, const mat4 &matB);
 void cofactor(float *out, const float *minor, int rows, int cols);
 mat2 cofactor(const mat2 &mat);
 mat3 cofactor(const mat3 &mat);
+mat4 cofactor(const mat4 &mat);
 
 // if matrix determinant is non-zero it has an inverse
 float determinant(const mat2 &matrix) {
@@ -113,9 +117,31 @@ float determinant(const mat2 &matrix) {
 }
 
 float determinant(const mat3 &matrix);
+float determinant(const mat4 &matrix);
 
 mat2 cut(const mat3 &mat, int row, int col);
+mat3 cut(const mat4 &mat, int row, int col);
+
 mat2 minor(const mat2 &mat);
 mat3 minor(const mat3 &mat);
+mat4 minor(const mat4 &mat);
+
+mat2 adjugate(const mat2 &mat) { return transpose(cofactor(mat)); }
+mat3 adjugate(const mat3 &mat) { return transpose(cofactor(mat)); }
+mat4 adjugate(const mat4 &mat) { return transpose(cofactor(mat)); }
+
+mat2 inverse(const mat2 &mat);
+mat3 inverse(const mat3 &mat);
+mat4 inverse(const mat4 &mat);
+
+// transforms
+
+mat4 translation(float x, float y, float z);
+mat4 translation(const vec3 &pos);
+vec3 getTranslation(const mat4 &mat);
+
+mat4 scale(float x, float y, float z);
+mat4 scale(const vec3 &pos);
+vec3 getScale(const mat4 &mat);
 
 #endif // _H_MATH_MATRICES_
