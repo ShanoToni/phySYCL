@@ -2,6 +2,8 @@
 #include <cfloat>
 #include <cmath>
 
+#define DEG2RAD(x) ((x)*0.0174533f)
+
 #define CMP(x, y)                                                              \
   (fabsf((x) - (y)) <= FLT_EPSILON * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))))
 
@@ -220,6 +222,99 @@ mat4 scale(const vec3 &pos) {
 }
 
 vec3 getScale(const mat4 &mat) { return vec3{mat._11, mat._22, mat._33}; }
+
+mat4 zRotation(float angle) {
+  angle = DEG2RAD(angle);
+  return mat4(cosf(angle), sinf(angle), 0.0f, 0.0f,  //
+              -sinf(angle), cosf(angle), 0.0f, 0.0f, //
+              0.0f, 0.0f, 1.0f, 0.0f,                //
+              0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+mat3 zRotation_3x3(float angle) {
+  angle = DEG2RAD(angle);
+  return mat3(cosf(angle), sinf(angle), 0.0f,  //
+              -sinf(angle), cosf(angle), 0.0f, //
+              0.0f, 0.0f, 1.0f);
+}
+
+mat4 yRotation(float angle) {
+  angle = DEG2RAD(angle);
+  return mat4(cosf(angle), 0.0f, -sinf(angle), 0.0f, //
+              0.0f, 1.0f, 0.0f, 0.0f,                //
+              sinf(angle), 0.0f, cosf(angle), 0.0f,  //
+              0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+mat3 yRotation_3x3(float angle) {
+  angle = DEG2RAD(angle);
+  return mat3(cosf(angle), 0.0f, -sinf(angle), //
+              0.0f, 1.0f, 0.0f,                //
+              sinf(angle), 0.0f, cosf(angle));
+}
+
+mat4 xRotation(float angle) {
+  angle = DEG2RAD(angle);
+  return mat4(1.0f, 0.0f, 0.0f, 0.0f,               //
+              0.0f, cosf(angle), sinf(angle), 0.0f, //
+              0.0f, -sinf(angle), cos(angle), 0.0f, //
+              0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+mat3 xRotation_3x3(float angle) {
+  angle = DEG2RAD(angle);
+  return mat3(1.0f, 0.0f, 0.0f,               //
+              0.0f, cosf(angle), sinf(angle), //
+              0.0f, -sinf(angle), cos(angle));
+}
+
+mat4 rotation(float pitch, float yaw, float roll) {
+  return zRotation(pitch) * yRotation(yaw) * xRotation(roll);
+}
+
+mat3 rotation_3x3(float pitch, float yaw, float roll) {
+  return zRotation3x3(pitch) * yRotation3x3(yaw) * xRotation3x3(roll);
+}
+
+mat4 axis_angle(const vec3 &axis, float angle) {
+  angle = DEG2RAD(angle);
+  float c = cosf(angle);
+  float s = sinf(angle);
+  float t = 1.0f - cosf(angle);
+  float x = axis.x;
+  float y = axis.y;
+  float z = axis.z;
+  if (!CMP(magnitude_sq(axis), 1.0f)) {
+    float inv_len = 1.0f / magnitude(axis);
+    x *= inv_len; // Normalize x
+    y *= inv_len; // Normalize y
+    z *= inv_len; // Normalize z
+  }               // x, y, and z are a normalized vector
+  return mat4(t * (x * x) + c, t * x * y + s * z, t * x * z - s * y, 0.0f,
+              t * x * y - s * z, t * (y * y) + c, t * y * z + s * x, 0.0f,
+              t * x * z + s * y, t * y * z - s * x, t * (z * z) + c, 0.0f, 0.0f,
+              0.0f, 0.0f, 1.0f);
+}
+
+mat3 AxisAngle3x3(const vec3 &axis, float angle) {
+  angle = DEG2RAD(angle);
+  float c = cosf(angle);
+  float s = sinf(angle);
+  float t = 1.0f - cosf(angle);
+
+  float x = axis.x;
+  float y = axis.y;
+  float z = axis.z;
+  if (!CMP(magnitude_sq(axis), 1.0f)) {
+    float inv_len = 1.0f / magnitude(axis);
+    x *= inv_len;
+    y *= inv_len;
+    z *= inv_len;
+  }
+  return mat3(t * (x * x) + c, t * x * y + s * z, t * x * z - s * y,
+              t * x * y - s * z, t * (y * y) + c, t * y * z + s * x,
+              t * x * z + s * y, t * y * z - s * x, t * (z * z) + c);
+}
 
 void cofactor(float *out, const float *minor, int rows, int cols) {
   for (int i = 0; i < rows; i++) {

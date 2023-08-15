@@ -144,4 +144,18 @@ mat4 scale(float x, float y, float z);
 mat4 scale(const vec3 &pos);
 vec3 getScale(const mat4 &mat);
 
+// rotations
+mat4 zRotation(float angle);
+mat3 zRotation3x3(float angle);
+mat4 yRotation(float angle);
+mat3 yRotation3x3(float angle);
+mat4 xRotation(float angle);
+mat3 xRotation3x3(float angle);
+
+mat4 rotation(float pitch, float yaw, float roll);
+mat3 rotation3x3(float pitch, float yaw, float roll);
+
+mat4 AxisAngle(const vec3& axis, float angle);
+mat3 AxisAngle3x3(const vec3& axis, float angle);
+
 #endif // _H_MATH_MATRICES_
