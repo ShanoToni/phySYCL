@@ -145,17 +145,33 @@ mat4 scale(const vec3 &pos);
 vec3 getScale(const mat4 &mat);
 
 // rotations
-mat4 zRotation(float angle);
-mat3 zRotation3x3(float angle);
-mat4 yRotation(float angle);
-mat3 yRotation3x3(float angle);
-mat4 xRotation(float angle);
-mat3 xRotation3x3(float angle);
+mat4 z_rotation(float angle);
+mat3 z_rotation3x3(float angle);
+mat4 y_rotation(float angle);
+mat3 y_rotation3x3(float angle);
+mat4 x_rotation(float angle);
+mat3 x_rotation3x3(float angle);
 
 mat4 rotation(float pitch, float yaw, float roll);
 mat3 rotation3x3(float pitch, float yaw, float roll);
 
-mat4 AxisAngle(const vec3& axis, float angle);
-mat3 AxisAngle3x3(const vec3& axis, float angle);
+mat4 axis_angle(const vec3 &axis, float angle);
+mat3 axis_angle3x3(const vec3 &axis, float angle);
+
+// Vector Matrix multiplication
+vec3 multiply_point(const vec3 &vec, const mat4 &mat);
+vec3 multiply_vec(const vec3 &vec, const mat4 &mat);
+vec3 multiply_vec(const vec3 &vec, const mat3 &mat);
+
+mat4 transform(const vec3 &scale, const vec3 &eulerRotation,
+               const vec3 &translate);
+mat4 transform(const vec3 &scale, const vec3 &rotationAxis, float rotationAngle,
+               const vec3 &translate);
+
+mat4 look_at(const vec3 &position, const vec3 &target, const vec3 &up);
+
+mat4 projection(float fov, float aspect, float zNear, float zFar);
+mat4 ortho(float left, float right, float bottom, float top, float zNear,
+           float zFar);
 
 #endif // _H_MATH_MATRICES_

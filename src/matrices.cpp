@@ -223,7 +223,7 @@ mat4 scale(const vec3 &pos) {
 
 vec3 getScale(const mat4 &mat) { return vec3{mat._11, mat._22, mat._33}; }
 
-mat4 zRotation(float angle) {
+mat4 z_rotation(float angle) {
   angle = DEG2RAD(angle);
   return mat4(cosf(angle), sinf(angle), 0.0f, 0.0f,  //
               -sinf(angle), cosf(angle), 0.0f, 0.0f, //
@@ -231,14 +231,14 @@ mat4 zRotation(float angle) {
               0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-mat3 zRotation_3x3(float angle) {
+mat3 z_rotation3x3(float angle) {
   angle = DEG2RAD(angle);
   return mat3(cosf(angle), sinf(angle), 0.0f,  //
               -sinf(angle), cosf(angle), 0.0f, //
               0.0f, 0.0f, 1.0f);
 }
 
-mat4 yRotation(float angle) {
+mat4 y_rotation(float angle) {
   angle = DEG2RAD(angle);
   return mat4(cosf(angle), 0.0f, -sinf(angle), 0.0f, //
               0.0f, 1.0f, 0.0f, 0.0f,                //
@@ -246,14 +246,14 @@ mat4 yRotation(float angle) {
               0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-mat3 yRotation_3x3(float angle) {
+mat3 y_rotation3x3(float angle) {
   angle = DEG2RAD(angle);
   return mat3(cosf(angle), 0.0f, -sinf(angle), //
               0.0f, 1.0f, 0.0f,                //
               sinf(angle), 0.0f, cosf(angle));
 }
 
-mat4 xRotation(float angle) {
+mat4 x_rotation(float angle) {
   angle = DEG2RAD(angle);
   return mat4(1.0f, 0.0f, 0.0f, 0.0f,               //
               0.0f, cosf(angle), sinf(angle), 0.0f, //
@@ -261,7 +261,7 @@ mat4 xRotation(float angle) {
               0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-mat3 xRotation_3x3(float angle) {
+mat3 x_rotation3x3(float angle) {
   angle = DEG2RAD(angle);
   return mat3(1.0f, 0.0f, 0.0f,               //
               0.0f, cosf(angle), sinf(angle), //
@@ -269,11 +269,11 @@ mat3 xRotation_3x3(float angle) {
 }
 
 mat4 rotation(float pitch, float yaw, float roll) {
-  return zRotation(pitch) * yRotation(yaw) * xRotation(roll);
+  return z_rotation(pitch) * y_rotation(yaw) * x_rotation(roll);
 }
 
-mat3 rotation_3x3(float pitch, float yaw, float roll) {
-  return zRotation3x3(pitch) * yRotation3x3(yaw) * xRotation3x3(roll);
+mat3 rotation3x3(float pitch, float yaw, float roll) {
+  return z_rotation3x3(pitch) * y_rotation3x3(yaw) * x_rotation3x3(roll);
 }
 
 mat4 axis_angle(const vec3 &axis, float angle) {
@@ -296,7 +296,7 @@ mat4 axis_angle(const vec3 &axis, float angle) {
               0.0f, 0.0f, 1.0f);
 }
 
-mat3 AxisAngle3x3(const vec3 &axis, float angle) {
+mat3 axis_angle3x3(const vec3 &axis, float angle) {
   angle = DEG2RAD(angle);
   float c = cosf(angle);
   float s = sinf(angle);
@@ -314,6 +314,85 @@ mat3 AxisAngle3x3(const vec3 &axis, float angle) {
   return mat3(t * (x * x) + c, t * x * y + s * z, t * x * z - s * y,
               t * x * y - s * z, t * (y * y) + c, t * y * z + s * x,
               t * x * z + s * y, t * y * z - s * x, t * (z * z) + c);
+}
+
+vec3 multiply_point(const vec3 &vec, const mat4 &mat) {
+  vec3 result;
+  result.x =
+      vec.x * mat._11 + vec.y * mat._21 + vec.z * mat._31 + 1.0f * mat._41;
+  result.y =
+      vec.x * mat._12 + vec.y * mat._22 + vec.z * mat._32 + 1.0f * mat._42;
+  result.z =
+      vec.x * mat._13 + vec.y * mat._23 + vec.z * mat._33 + 1.0f * mat._43;
+  return result;
+}
+
+vec3 multiply_vec(const vec3 &vec, const mat4 &mat) {
+  vec3 result;
+  result.x =
+      vec.x * mat._11 + vec.y * mat._21 + vec.z * mat._31 + 0.0f * mat._41;
+  result.y =
+      vec.x * mat._12 + vec.y * mat._22 + vec.z * mat._32 + 0.0f * mat._42;
+  result.z =
+      vec.x * mat._13 + vec.y * mat._23 + vec.z * mat._33 + 0.0f * mat._43;
+  return result;
+}
+
+vec3 multiply_vec(const vec3 &vec, const mat3 &mat) {
+  vec3 result;
+  result.x = dot(vec, vec3{mat._11, mat._21, mat._31});
+  result.y = dot(vec, vec3{mat._12, mat._22, mat._32});
+  result.z = dot(vec, vec3{mat._13, mat._23, mat._33});
+  return result;
+}
+
+mat4 transform(const vec3 &sc, const vec3 &eulerRot, const vec3 &tr) {
+  return scale(sc) * rotation(eulerRot.x, eulerRot.y, eulerRot.z) *
+         translation(tr);
+}
+
+mat4 transform(const vec3 &sc, const vec3 &rotationAxis, float rotationAngle,
+               const vec3 &translate) {
+  return scale(sc) * axis_angle(rotationAxis, rotationAngle) *
+         translation(translate);
+}
+
+mat4 look_at(const vec3 &position, const vec3 &target, const vec3 &up) {
+  vec3 forward = normalized(target - position);
+  vec3 right = normalized(cross(up, forward));
+  vec3 newUp = normalized(cross(forward, right));
+
+  return mat4(right.x, newUp.x, forward.x, 0.0f, //
+              right.y, newUp.y, forward.y, 0.0f, //
+              right.z, newUp.z, forward.z, 0.0f, //
+              -dot(right, position), -dot(newUp, position),
+              -dot(forward, position), 1.0f);
+}
+
+mat4 projection(float fov, float aspect, float zNear, float zFar) {
+  float tanHalfFov = tanf(DEG2RAD(fov * 0.5f));
+  float fovY = 1.0f / tanHalfFov;
+  float fovX = fovY / aspect;
+  mat4 result;
+  result._11 = fovX;
+  result._22 = fovY;
+  result._33 = zFar / (zFar - zNear);
+  result._34 = 1.0f;
+  result._43 = -zNear * result._33;
+  result._44 = 0.0f;
+  return result;
+}
+
+mat4 ortho(float left, float right, float bottom, float top, float zNear,
+           float zFar) {
+  float _11 = 2.0f / (right - left);
+  float _22 = 2.0f / (top - bottom);
+  float _33 = 1.0f / (zFar - zNear);
+  float _41 = (left + right) / (left - right);
+  float _42 = (top + bottom) / (bottom - top);
+  float _43 = (zNear) / (zNear - zFar);
+  return mat4(_11, 0.0f, 0.0f, 0.0f, 0.0f, _22, 0.0f, 0.0f, 0.0f, 0.0f, _33,
+              0.0f, _41, _42, _43, 1.0f);
 }
 
 void cofactor(float *out, const float *minor, int rows, int cols) {
