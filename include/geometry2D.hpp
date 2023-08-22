@@ -3,6 +3,8 @@
 
 #include "vectors.hpp"
 
+namespace geom2D {
+
 typedef vec2 Point2D;
 
 // Line 2D
@@ -62,4 +64,12 @@ bool point_in_rectangle(const Point2D &p, const Rectangle2D &rec);
 bool point_in_oriented_rectangle(const Point2D &p,
                                  const OrientedRectangle &or_rec);
 
+bool line_circle(const Line2D &l, const Circle &c);
+bool line_rectangle(const Line2D &l, const Rectangle2D &rec);
+bool line_oriented_rectangle(const Line2D &l, const OrientedRectangle &or_rec);
+
+// Collision
+bool circle_circle(const Circle &c1, const Circle &c2);
+bool circle_rectangle(const Circle &c, const Rectangle2D &rec);
+} // namespace geom2D
 #endif
