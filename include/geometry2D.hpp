@@ -57,6 +57,15 @@ typedef struct OrientedRectangle {
       : position(p), halfExtents(h_e), rotation(rot) {}
 } OrientedRectangle;
 
+typedef struct Interval2D {
+  float min;
+  float max;
+} Interval2D;
+
+Interval2D get_interval(const Rectangle2D &rec, const vec2 &axis);
+bool overlap_on_axis(const Rectangle2D &rec1, const Rectangle2D &rec2,
+                     const vec2 &axis);
+
 // Intersections
 bool point_on_line(const Point2D &p, const Line2D &line);
 bool point_in_circle(const Point2D &p, const Circle &c);
@@ -71,5 +80,10 @@ bool line_oriented_rectangle(const Line2D &l, const OrientedRectangle &or_rec);
 // Collision
 bool circle_circle(const Circle &c1, const Circle &c2);
 bool circle_rectangle(const Circle &c, const Rectangle2D &rec);
+bool circle_or_rectangle(const Circle &c, const OrientedRectangle &or_rec);
+
+bool rectangle_rectangle(const Rectangle2D &rec1, const Rectangle2D &rec2);
+bool rec_rec_sat(const Rectangle2D &rec1, const Rectangle2D &rec2);
+
 } // namespace geom2D
 #endif

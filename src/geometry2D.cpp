@@ -10,6 +10,8 @@
   number =                                                                     \
       (number < minimum) ? minimum : ((number > maximum) ? maximum : number)
 
+#define OVERLAP(aMin, aMax, bMin, bMax) ((bMin <= aMax) && (aMin <= bMax))
+
 namespace geom2D {
 
 float length(const Line2D &line) { return magnitude(line.end - line.start); }
@@ -34,6 +36,35 @@ vec2 get_max(const Rectangle2D &rec) {
 
 Rectangle2D from_min_max(const vec2 &min, const vec2 &max) {
   return Rectangle2D{min, max - min};
+}
+
+Interval2D get_interval(const Rectangle2D &rec, const vec2 &axis) {
+  Interval2D result;
+  vec2 min = get_min(rec);
+  vec2 max = get_max(rec);
+
+  vec2 verts[] = {vec2{min.x, min.y}, vec2{min.x, max.y}, //
+                  vec2{max.x, max.y}, vec2{max.x, min.y}};
+
+  result.min = result.max = dot(axis, verts[0]);
+
+  for (int i = 1; i < 4; ++i) {
+    float proj = dot(axis, verts[i]);
+    if (proj < result.min) {
+      result.min = proj;
+    }
+    if (proj > result.max) {
+      result.max = proj;
+    }
+  }
+  return result;
+}
+
+bool overlap_on_axis(const Rectangle2D &rec1, const Rectangle2D &rec2,
+                     const vec2 &axis) {
+  Interval2D a = get_interval(rec1, axis);
+  Interval2D b = get_interval(rec2, axis);
+  return ((b.min <= a.max) && (a.min <= b.max));
 }
 
 bool point_on_line(const Point2D &p, const Line2D &line) {
@@ -140,6 +171,44 @@ bool circle_rectangle(const Circle &c, const Rectangle2D &rec) {
 
   Line2D line(c.position, closestPoint);
   return length_sq(line) <= c.radius * c.radius;
+}
+
+bool circle_or_rectangle(const Circle &c, const OrientedRectangle &or_rec) {
+  vec2 r = c.position - or_rec.position;
+
+  float theta = -DEG2RAD(or_rec.rotation);
+  float zRot2x2[] = {cosf(theta), sinf(theta), //
+                     -sinf(theta), cosf(theta)};
+
+  multiply(r.asArray, vec2{r.x, r.y}.asArray, 1, 2, zRot2x2, 2, 2);
+  Circle locCircle(r + or_rec.halfExtents, c.radius);
+  Rectangle2D locRec(Point2D(), or_rec.halfExtents * 2);
+
+  return circle_rectangle(locCircle, locRec);
+}
+
+bool rectangle_rectangle(const Rectangle2D &rec1, const Rectangle2D &rec2) {
+  vec2 aMin = get_min(rec1);
+  vec2 aMax = get_max(rec1);
+
+  vec2 bMin = get_min(rec2);
+  vec2 bMax = get_max(rec2);
+
+  bool overX = OVERLAP(aMin.x, aMax.x, bMin.x, bMax.x);
+  bool overY = OVERLAP(aMin.y, aMax.y, bMin.y, bMax.y);
+
+  return overX && overY;
+}
+
+bool rec_rec_sat(const Rectangle2D &rec1, const Rectangle2D &rec2) {
+  vec2 axisToTest[] = {vec2{1, 0}, vec2{0, 1}};
+
+  for (int i = 0; i < 2; ++i) {
+    if (!overlap_on_axis(rec1, rec2, axisToTest[i])) {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // namespace geom2D
