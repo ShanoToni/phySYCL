@@ -63,7 +63,10 @@ typedef struct Interval2D {
 } Interval2D;
 
 Interval2D get_interval(const Rectangle2D &rec, const vec2 &axis);
+Interval2D get_interval(const OrientedRectangle &rec, const vec2 &axis);
 bool overlap_on_axis(const Rectangle2D &rec1, const Rectangle2D &rec2,
+                     const vec2 &axis);
+bool overlap_on_axis(const Rectangle2D &rec, const OrientedRectangle &or_rec,
                      const vec2 &axis);
 
 // Intersections
@@ -84,6 +87,8 @@ bool circle_or_rectangle(const Circle &c, const OrientedRectangle &or_rec);
 
 bool rectangle_rectangle(const Rectangle2D &rec1, const Rectangle2D &rec2);
 bool rec_rec_sat(const Rectangle2D &rec1, const Rectangle2D &rec2);
+bool rectangle_or_rectangle(const Rectangle2D &rec,
+                            const OrientedRectangle &or_rec);
 
 } // namespace geom2D
 #endif

@@ -60,10 +60,45 @@ Interval2D get_interval(const Rectangle2D &rec, const vec2 &axis) {
   return result;
 }
 
+Interval2D get_interval(const OrientedRectangle &rec, const vec2 &axis) {
+  Rectangle2D r = Rectangle2D(Point2D(rec.position - rec.halfExtents),
+                              rec.halfExtents * 2.0f);
+  vec2 min = get_min(r);
+  vec2 max = get_max(r);
+
+  vec2 verts[] = {min, max, vec2{min.x, max.y}, vec2{max.x, min.y}};
+
+  float theta = DEG2RAD(rec.rotation);
+  float zRot[] = {cosf(theta), sinf(theta), //
+                  -sinf(theta), cosf(theta)};
+
+  for (int i = 0; i < 4; ++i) {
+    vec2 r = verts[i] - rec.position;
+    multiply(r.asArray, vec2{r.x, r.y}.asArray, 1, 2, zRot, 2, 2);
+    verts[i] = r + rec.position;
+  }
+
+  Interval2D res;
+  res.min = res.max = dot(axis, verts[0]);
+  for (int i = 1; i < 4; ++i) {
+    float proj = dot(axis, verts[i]);
+    res.min = (proj < res.min) ? proj : res.min;
+    res.max = (proj > res.max) ? proj : res.max;
+  }
+  return res;
+}
+
 bool overlap_on_axis(const Rectangle2D &rec1, const Rectangle2D &rec2,
                      const vec2 &axis) {
   Interval2D a = get_interval(rec1, axis);
   Interval2D b = get_interval(rec2, axis);
+  return ((b.min <= a.max) && (a.min <= b.max));
+}
+
+bool overlap_on_axis(const Rectangle2D &rec, const OrientedRectangle &or_rec,
+                     const vec2 &axis) {
+  Interval2D a = get_interval(rec, axis);
+  Interval2D b = get_interval(or_rec, axis);
   return ((b.min <= a.max) && (a.min <= b.max));
 }
 
@@ -205,6 +240,27 @@ bool rec_rec_sat(const Rectangle2D &rec1, const Rectangle2D &rec2) {
 
   for (int i = 0; i < 2; ++i) {
     if (!overlap_on_axis(rec1, rec2, axisToTest[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool rectangle_or_rectangle(const Rectangle2D &rec,
+                            const OrientedRectangle &or_rec) {
+  vec2 axisToTest[]{vec2{1, 0}, vec2{0, 1}, vec2(), vec2()};
+  float theta = DEG2RAD(or_rec.rotation);
+  float zRot[] = {cosf(theta), sinf(theta), //
+                  -sinf(theta), cosf(theta)};
+
+  vec2 axis = normalized(vec2{or_rec.halfExtents.x, 0});
+  multiply(axisToTest[2].asArray, axis.asArray, 1, 2, zRot, 2, 2);
+
+  axis = normalized(vec2{0, or_rec.halfExtents.y});
+  multiply(axisToTest[3].asArray, axis.asArray, 1, 2, zRot, 2, 2);
+
+  for (int i = 0; i < 4; ++i) {
+    if (!overlap_on_axis(rec, or_rec, axisToTest[i])) {
       return false;
     }
   }
