@@ -267,4 +267,19 @@ bool rectangle_or_rectangle(const Rectangle2D &rec,
   return true;
 }
 
+bool or_rec_or_rec(const OrientedRectangle &or_rec1,
+                   const OrientedRectangle &or_rec2) {
+  Rectangle2D loc1(Point2D(), or_rec1.halfExtents * 2.0f);
+  vec2 r = or_rec2.position - or_rec1.position;
+  OrientedRectangle loc2(or_rec2.position, or_rec2.halfExtents,
+                         or_rec2.rotation);
+  loc2.rotation = or_rec2.rotation - or_rec1.rotation;
+  float theta = -DEG2RAD(or_rec1.rotation);
+  float zRot[] = {cosf(theta), sinf(theta), //
+                  -sinf(theta), cosf(theta)};
+
+  multiply(r.asArray, vec2{r.x, r.y}.asArray, 1, 2, zRot, 2, 2);
+  return rectangle_or_rectangle(loc1, loc2);
+}
+
 } // namespace geom2D

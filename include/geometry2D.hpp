@@ -89,6 +89,8 @@ bool rectangle_rectangle(const Rectangle2D &rec1, const Rectangle2D &rec2);
 bool rec_rec_sat(const Rectangle2D &rec1, const Rectangle2D &rec2);
 bool rectangle_or_rectangle(const Rectangle2D &rec,
                             const OrientedRectangle &or_rec);
+bool or_rec_or_rec(const OrientedRectangle &or_rec1,
+                   const OrientedRectangle &or_rec2);
 
 } // namespace geom2D
 #endif
