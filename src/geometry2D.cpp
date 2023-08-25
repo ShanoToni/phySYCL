@@ -282,4 +282,50 @@ bool or_rec_or_rec(const OrientedRectangle &or_rec1,
   return rectangle_or_rectangle(loc1, loc2);
 }
 
+Circle containing_circle(Point2D *pArray, int arrayCount) {
+  Point2D center;
+  for (int i = 0; i < arrayCount; ++i) {
+    center = center + pArray[i];
+  }
+  center = center * (1.0f / (float)arrayCount);
+
+  Circle result(center, 1.0f);
+  result.radius = magnitude_sq(center - pArray[0]);
+  for (int i = 0; i < arrayCount; ++i) {
+    float distance = magnitude_sq(center - pArray[i]);
+    if (distance > result.radius) {
+      result.radius = distance;
+    }
+  }
+  result.radius = sqrtf(result.radius);
+  return result;
+}
+
+Rectangle2D containing_rectangle(Point2D *pArray, int arrayCount) {
+  vec2 min = pArray[0];
+  vec2 max = pArray[0];
+  for (int i = 0; i < arrayCount; ++i) {
+    min.x = pArray[i].x < min.x ? pArray[i].x : min.x;
+    min.y = pArray[i].y < min.y ? pArray[i].y : min.y;
+    max.x = pArray[i].x > max.x ? pArray[i].x : max.x;
+    max.y = pArray[i].y > max.y ? pArray[i].y : max.y;
+  }
+
+  return from_min_max(min, max);
+}
+
+bool point_in_shape(const BoundingShape &shape, const Point2D &point) {
+  for (int i = 0; i < shape.numCircles; ++i) {
+    if (point_in_circle(point, shape.circles[i])) {
+      return true;
+    }
+  }
+  for (int i = 0; i < shape.numRec; ++i) {
+    if (point_in_rectangle(point, shape.recs[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 } // namespace geom2D

@@ -62,6 +62,15 @@ typedef struct Interval2D {
   float max;
 } Interval2D;
 
+typedef struct BoundingShape {
+  int numCircles;
+  Circle *circles;
+  int numRec;
+  Rectangle2D *recs;
+  inline BoundingShape()
+      : numCircles(0), circles(nullptr), numRec(0), recs(nullptr){};
+} BoundingShape;
+
 Interval2D get_interval(const Rectangle2D &rec, const vec2 &axis);
 Interval2D get_interval(const OrientedRectangle &rec, const vec2 &axis);
 bool overlap_on_axis(const Rectangle2D &rec1, const Rectangle2D &rec2,
@@ -91,6 +100,11 @@ bool rectangle_or_rectangle(const Rectangle2D &rec,
                             const OrientedRectangle &or_rec);
 bool or_rec_or_rec(const OrientedRectangle &or_rec1,
                    const OrientedRectangle &or_rec2);
+
+Circle containing_circle(Point2D *pArray, int arrayCount);
+Rectangle2D containing_rectangle(Point2D *pArray, int arrayCount);
+
+bool point_in_shape(const BoundingShape &shape, const Point2D &point);
 
 } // namespace geom2D
 #endif
