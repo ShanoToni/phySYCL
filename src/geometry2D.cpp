@@ -61,7 +61,7 @@ Interval2D get_interval(const Rectangle2D &rec, const vec2 &axis) {
 }
 
 Interval2D get_interval(const OrientedRectangle &rec, const vec2 &axis) {
-  Rectangle2D r = Rectangle2D(Point2D(rec.position - rec.halfExtents),
+  Rectangle2D r = Rectangle2D(Point(rec.position - rec.halfExtents),
                               rec.halfExtents * 2.0f);
   vec2 min = get_min(r);
   vec2 max = get_max(r);
@@ -102,7 +102,7 @@ bool overlap_on_axis(const Rectangle2D &rec, const OrientedRectangle &or_rec,
   return ((b.min <= a.max) && (a.min <= b.max));
 }
 
-bool point_on_line(const Point2D &p, const Line2D &line) {
+bool point_on_line(const Point &p, const Line2D &line) {
   float dy = (line.end.y - line.start.y);
   float dx = (line.end.x - line.start.x);
   float M = dy / dx;
@@ -110,7 +110,7 @@ bool point_on_line(const Point2D &p, const Line2D &line) {
   return CMP(p.y, M * p.x + B);
 }
 
-bool point_in_circle(const Point2D &p, const Circle &c) {
+bool point_in_circle(const Point &p, const Circle &c) {
   Line2D line(p, c.position);
   if (length_sq(line) < c.radius * c.radius) {
     return true;
@@ -118,21 +118,21 @@ bool point_in_circle(const Point2D &p, const Circle &c) {
   return false;
 }
 
-bool point_in_rectangle(const Point2D &p, const Rectangle2D &rec) {
+bool point_in_rectangle(const Point &p, const Rectangle2D &rec) {
   vec2 min = get_min(rec);
   vec2 max = get_max(rec);
 
   return min.x <= p.x && min.y <= p.y && p.x <= max.x && p.y <= max.y;
 }
 
-bool point_in_oriented_rectangle(const Point2D &p,
+bool point_in_oriented_rectangle(const Point &p,
                                  const OrientedRectangle &or_rec) {
   vec2 rotVec = p - or_rec.position;
   float theta = -DEG2RAD(or_rec.rotation);
   float zRotation2x2[] = {cosf(theta), sinf(theta), //
                           -sinf(theta), cosf(theta)};
 
-  Rectangle2D localRectangle(Point2D(), or_rec.halfExtents * 2.0f);
+  Rectangle2D localRectangle(Point(), or_rec.halfExtents * 2.0f);
   vec2 localPoint = rotVec + or_rec.halfExtents;
   return point_in_rectangle(localPoint, localRectangle);
 }
@@ -144,7 +144,7 @@ bool line_circle(const Line2D &l, const Circle &c) {
     return false;
   }
 
-  Point2D closest = l.start + ab * t;
+  Point closest = l.start + ab * t;
 
   Line2D circleToClosest(c.position, closest);
   return length_sq(circleToClosest) < c.radius * c.radius;
@@ -184,7 +184,7 @@ bool line_oriented_rectangle(const Line2D &l, const OrientedRectangle &or_rec) {
 
   localLine.end = rotVec + or_rec.halfExtents;
 
-  Rectangle2D localRec(Point2D(), or_rec.halfExtents * 2.0f);
+  Rectangle2D localRec(Point(), or_rec.halfExtents * 2.0f);
   return line_rectangle(localLine, localRec);
 }
 
@@ -200,7 +200,7 @@ bool circle_rectangle(const Circle &c, const Rectangle2D &rec) {
   vec2 min = get_min(rec);
   vec2 max = get_max(rec);
 
-  Point2D closestPoint = c.position;
+  Point closestPoint = c.position;
   CLAMP(closestPoint.x, min.x, max.x);
   CLAMP(closestPoint.y, min.y, max.y);
 
@@ -217,7 +217,7 @@ bool circle_or_rectangle(const Circle &c, const OrientedRectangle &or_rec) {
 
   multiply(r.asArray, vec2{r.x, r.y}.asArray, 1, 2, zRot2x2, 2, 2);
   Circle locCircle(r + or_rec.halfExtents, c.radius);
-  Rectangle2D locRec(Point2D(), or_rec.halfExtents * 2);
+  Rectangle2D locRec(Point(), or_rec.halfExtents * 2);
 
   return circle_rectangle(locCircle, locRec);
 }
@@ -269,7 +269,7 @@ bool rectangle_or_rectangle(const Rectangle2D &rec,
 
 bool or_rec_or_rec(const OrientedRectangle &or_rec1,
                    const OrientedRectangle &or_rec2) {
-  Rectangle2D loc1(Point2D(), or_rec1.halfExtents * 2.0f);
+  Rectangle2D loc1(Point(), or_rec1.halfExtents * 2.0f);
   vec2 r = or_rec2.position - or_rec1.position;
   OrientedRectangle loc2(or_rec2.position, or_rec2.halfExtents,
                          or_rec2.rotation);
@@ -282,8 +282,8 @@ bool or_rec_or_rec(const OrientedRectangle &or_rec1,
   return rectangle_or_rectangle(loc1, loc2);
 }
 
-Circle containing_circle(Point2D *pArray, int arrayCount) {
-  Point2D center;
+Circle containing_circle(Point *pArray, int arrayCount) {
+  Point center;
   for (int i = 0; i < arrayCount; ++i) {
     center = center + pArray[i];
   }
@@ -301,7 +301,7 @@ Circle containing_circle(Point2D *pArray, int arrayCount) {
   return result;
 }
 
-Rectangle2D containing_rectangle(Point2D *pArray, int arrayCount) {
+Rectangle2D containing_rectangle(Point *pArray, int arrayCount) {
   vec2 min = pArray[0];
   vec2 max = pArray[0];
   for (int i = 0; i < arrayCount; ++i) {
@@ -314,7 +314,7 @@ Rectangle2D containing_rectangle(Point2D *pArray, int arrayCount) {
   return from_min_max(min, max);
 }
 
-bool point_in_shape(const BoundingShape &shape, const Point2D &point) {
+bool point_in_shape(const BoundingShape &shape, const Point &point) {
   for (int i = 0; i < shape.numCircles; ++i) {
     if (point_in_circle(point, shape.circles[i])) {
       return true;
