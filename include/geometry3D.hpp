@@ -88,6 +88,13 @@ AABB from_min_max(const vec3 &min, const vec3 &max);
 
 float plane_equation(const Point &pt, const Plane &plane);
 
+// point tests
+bool point_in_sphere(const Point &point, const Sphere &sphere);
+Point closest_point(const Sphere &sphere, const Point &point);
+bool point_in_aabb(const Point &point, const AABB &aabb);
+Point closest_point(const AABB &aabb, const Point &point);
+bool point_in_obb(const Point &point, const OBB &obb);
+Point closest_point(const OBB &obb, const Point &point);
 } // namespace geom3D
 
 #endif // _H_GEOMETRY_3D_
