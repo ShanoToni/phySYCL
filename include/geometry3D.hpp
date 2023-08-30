@@ -53,6 +53,30 @@ struct OBB {
       : position(p), size(s), orientation(o){};
 };
 
+struct Plane {
+  vec3 normal;
+  float distance;
+
+  inline Plane() : normal{1, 0, 0} {}
+  inline Plane(const vec3 &n, float d) : normal{n}, distance(d) {}
+};
+
+struct Triangle {
+  union {
+    struct {
+      Point a;
+      Point b;
+      Point c;
+    }; // namespace geom3D
+    Point points[3];
+    float values[3];
+  };
+
+  inline Triangle() {}
+  inline Triangle(const Point &p1, const Point &p2, const Point &p3)
+      : a(p1), b(p2), c(p3) {}
+};
+
 float length(const Line &line);
 float length_sq(const Line &line);
 
@@ -61,6 +85,8 @@ Ray from_points(const Point &s, const Point &to);
 vec3 get_min(const AABB &aabb);
 vec3 get_max(const AABB &aabb);
 AABB from_min_max(const vec3 &min, const vec3 &max);
+
+float plane_equation(const Point &pt, const Plane &plane);
 
 } // namespace geom3D
 

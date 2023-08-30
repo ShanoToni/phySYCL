@@ -26,4 +26,7 @@ vec3 get_max(const AABB &aabb) {
 AABB from_min_max(const vec3 &min, const vec3 &max) {
   return AABB((min + max) * 0.5f, (max - min) * 0.5f);
 }
+float plane_equation(const Point &pt, const Plane &plane) {
+  return (dot(pt, plane.normal) - plane.distance);
+}
 } // namespace geom3D
