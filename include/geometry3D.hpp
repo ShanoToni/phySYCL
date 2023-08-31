@@ -95,6 +95,12 @@ bool point_in_aabb(const Point &point, const AABB &aabb);
 Point closest_point(const AABB &aabb, const Point &point);
 bool point_in_obb(const Point &point, const OBB &obb);
 Point closest_point(const OBB &obb, const Point &point);
+bool point_on_plane(const Point &point, const Plane &plane);
+Point closest_point(const Plane &plane, const Point &point);
+Point closest_point(const Line &line, const Point &point);
+bool point_on_line(const Point &point, const Line &line);
+bool point_on_ray(const Point &point, const Ray &ray);
+Point closest_point(const Ray &ray, const Point &point);
 } // namespace geom3D
 
 #endif // _H_GEOMETRY_3D_
