@@ -77,6 +77,15 @@ struct Triangle {
       : a(p1), b(p2), c(p3) {}
 };
 
+struct Interval {
+  float min;
+  float max;
+};
+
+Interval get_interval(const AABB &rect, const vec3 &axis);
+Interval get_interval(const OBB &obb, const vec3 &axis);
+bool overlap_on_axis(const AABB &rect, const OBB &obb, const vec3 &axis);
+
 float length(const Line &line);
 float length_sq(const Line &line);
 
@@ -101,6 +110,17 @@ Point closest_point(const Line &line, const Point &point);
 bool point_on_line(const Point &point, const Line &line);
 bool point_on_ray(const Point &point, const Ray &ray);
 Point closest_point(const Ray &ray, const Point &point);
+
+// 3D intersections
+// sphere intersections
+bool sphere_sphere(const Sphere &sphere1, const Sphere &sphere2);
+bool sphere_AABB(const Sphere &sphere, const AABB &aabb);
+bool sphere_OBB(const Sphere &sphere, const OBB &obb);
+bool sphere_plane(const Sphere &sphere, const Plane &plane);
+// AABB intersections
+bool aabb_aabb(const AABB &aabb1, const AABB &aabb2);
+bool aabb_obb(const AABB &aabb, const OBB &obb);
+bool aabb_plane(const AABB &aabb, const Plane &plane);
 } // namespace geom3D
 
 #endif // _H_GEOMETRY_3D_

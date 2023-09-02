@@ -5,6 +5,58 @@
   (fabsf((x) - (y)) <= FLT_EPSILON * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))))
 
 namespace geom3D {
+Interval get_interval(const AABB &rect, const vec3 &axis) {
+  vec3 i = GetMin(aabb);
+  vec3 a = GetMax(aabb);
+  vec3 vertex[8] = {vec3(i.x, a.y, a.z), vec3(i.x, a.y, i.z),
+                    vec3(i.x, i.y, a.z), vec3(i.x, i.y, i.z),
+                    vec3(a.x, a.y, a.z), vec3(a.x, a.y, i.z),
+                    vec3(a.x, i.y, a.z), vec3(a.x, i.y, i.z)};
+  Interval result;
+  result.min = result.max = dot(axis, vertex[0]);
+
+  for (int i = 0; i < 8; ++i) {
+    float projection = dot(axis, vertex[i]);
+    result.min = (projection < result.min) ? projection : result.min;
+    result.max = (projection > result.max) ? projection : result.max;
+  }
+  return result;
+}
+
+Interval get_interval(const OBB &obb, const vec3 &axis) {
+  vec3 vertex[8];
+  vec3 C = obb.position;
+  vec3 E = obb.size;
+  const float *o = obb.orientation.asArray;
+  vec3 A[] = {vec3{o[0], o[1], o[2]}, //
+              vec3{o[3], o[4], o[5]}, //
+              vec3{o[6], o[7], o[8]}};
+
+  vertex[0] = C + A[0] * E[0] + A[1] * E[1] + A[2] * E[2];
+  vertex[1] = C - A[0] * E[0] + A[1] * E[1] + A[2] * E[2];
+  vertex[2] = C + A[0] * E[0] - A[1] * E[1] + A[2] * E[2];
+  vertex[3] = C + A[0] * E[0] + A[1] * E[1] - A[2] * E[2];
+  vertex[4] = C - A[0] * E[0] - A[1] * E[1] - A[2] * E[2];
+  vertex[5] = C + A[0] * E[0] - A[1] * E[1] - A[2] * E[2];
+  vertex[6] = C - A[0] * E[0] + A[1] * E[1] - A[2] * E[2];
+  vertex[7] = C - A[0] * E[0] - A[1] * E[1] + A[2] * E[2];
+
+  Interval result;
+  result.min = result.max = dot(axis, vertex[0]);
+
+  for (int i = 0; i < 8; ++i) {
+    float projection = dot(axis, vertex[i]);
+    result.min = (projection < result.min) ? projection : result.min;
+    result.max = (projection > result.max) ? projection : result.max;
+  }
+  return result;
+}
+
+bool overlap_on_axis(const AABB &rect, const OBB &obb, const vec3 &axis) {
+  Interval a = get_interval(rect, axis);
+  Interval b = get_interval(obb, axis);
+  return ((b.min <= a.max) && (a.min <= b.max));
+}
 
 float geom3D::length(const Line &line) {
   return magnitude(line.start - line.end);
@@ -141,8 +193,76 @@ bool geom3D::point_on_ray(const Point &point, const Ray &ray) {
 
 Point geom3D::closest_point(const Ray &ray, const Point &point) {
   float t = dot(point - ray.origin, ray.direction);
-  // assuming ray.direction is normalized
+  if (ray.direction.x + ray.direction.y + ray.direction.z > 1.0) {
+    t /= dot(ray.direction, ray.direction);
+  }
   t = fmaxf(t, 0.0f);
   return Point(ray.origin + ray.direction * t);
+}
+bool sphere_sphere(const Sphere &sphere1, const Sphere &sphere2) {
+  float sumRadii = sphere1.radius + sphere2.radius;
+  float sqDistance = magnitude_sq(sphere1.position - sphere2.position);
+
+  return sqDistance < sumRadii * sumRadii;
+}
+bool sphere_AABB(const Sphere &sphere, const AABB &aabb) {
+  Point closestPoint = closest_point(aabb, sphere.position);
+  float distSq = magnitude_sq(aabb.origin, sphere.position);
+  float radiusSq = sphere.radius * sphere.radius;
+  return distSq < radiusSq;
+}
+bool sphere_OBB(const Sphere &sphere, const OBB &obb) {
+  Point closestPoint = closest_point(obb.position, sphere.position);
+  float distSq = magnitude_sq(sphere.position - closestPoint);
+  float radiusSq = sphere.radius * sphere.radius;
+  return distSq < radiusSq;
+}
+bool sphere_plane(const Sphere &sphere, const Plane &plane) {
+  Point closestPoint = closest_point(plane, sphere.position);
+  float distSq = magnitude_sq(sphere.position - closestPoint);
+  float radiusSq = sphere.radius * sphere.radius;
+  return distSq < radiusSq;
+}
+bool aabb_aabb(const AABB &aabb1, const AABB &aabb2) {
+  Point aMin = get_min(aabb1);
+  Point aMax = get_max(aabb1);
+
+  Point bMin = get_min(aabb2);
+  Point bMax = get_max(aabb2);
+
+  return (aMin.x <= bMax.x && aMax.x >= bMin.x) &&
+         (aMin.y <= bMax.y && aMax.y >= bMin.y) &&
+         (aMin.z <= bMax.z && aMax.z >= bMin.z);
+}
+bool aabb_obb(const AABB &aabb, const OBB &obb) {
+  const float *o = obb.orientation.asArray;
+
+  vec3 test[15] = {vec3(1, 0, 0),          //
+                   vec3(0, 1, 0),          //
+                   vec3(0, 0, 1),          //
+                   vec3(o[0], o[1], o[2]), //
+                   vec3(o[3], o[4], o[5]), //
+                   vec3(o[6], o[7], o[8])};
+
+  for (int i = 0; i < 3; ++i) {
+    test[6 + i * 3 + 0] = cross(test[i], test[0]);
+    test[6 + i * 3 + 1] = cross(test[i], test[1]);
+    test[6 + i * 3 + 2] = cross(test[i], test[2]);
+  }
+  for (int i = 0; i < 15; ++i) {
+    if (!overlap_on_axis(aabb, obb, test[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+bool aabb_plane(const AABB &aabb, const Plane &plane) {
+  float pLen = aabb.size.x * fabsf(plane.normal.x) +
+               aabb.size.y * fabsf(plane.normal.y) +
+               aabb.size.z * fabsf(plane.normal.z);
+  float d = dot(plane.normal, aabb.origin);
+  float dist = dot - plane.distance;
+
+  return fabsf(dist) <= pLen;
 }
 } // namespace geom3D
