@@ -126,6 +126,8 @@ bool aabb_plane(const AABB &aabb, const Plane &plane);
 bool obb_obb(const OBB &obb1, const OBB &obb2);
 bool obb_plane(const OBB &obb, const Plane &plane);
 bool plane_plane(const Plane &plane1, const Plane &plane2);
+// Raycast
+float Raycast(const Sphere &sphere, const Ray &ray);
 
 } // namespace geom3D
 

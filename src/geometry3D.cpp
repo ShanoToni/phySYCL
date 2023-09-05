@@ -310,4 +310,23 @@ bool plane_plane(const Plane &plane1, const Plane &plane2) {
   vec3 d = cross(plane1.normal, plane2.normal);
   return !CMP(dot(d, d), 0);
 }
+float Raycast(const Sphere &sphere, const Ray &ray) {
+
+  vec3 e = sphere.position - ray.origin;
+  float rSq = sphere.radius * sphere.radius;
+  float eSq = magnitude_sq(e);
+
+  // double check dir is normalised
+
+  float a = dot(e, normalize(ray.direction));
+
+  float bSq = eSq - (a * a);
+  float f = sqrt(rSq - bSq);
+  if (rSq - (esq - (a * a)) < -0.0f) {
+    return -1;
+  } else if (eSq < rSq) {
+    return a + f;
+  }
+  return a - f;
+}
 } // namespace geom3D
