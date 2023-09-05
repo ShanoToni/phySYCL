@@ -85,6 +85,7 @@ struct Interval {
 Interval get_interval(const AABB &rect, const vec3 &axis);
 Interval get_interval(const OBB &obb, const vec3 &axis);
 bool overlap_on_axis(const AABB &rect, const OBB &obb, const vec3 &axis);
+bool overlap_on_axis(const OBB &obb1, const OBB &obb2, const vec3 &axis);
 
 float length(const Line &line);
 float length_sq(const Line &line);
@@ -121,6 +122,11 @@ bool sphere_plane(const Sphere &sphere, const Plane &plane);
 bool aabb_aabb(const AABB &aabb1, const AABB &aabb2);
 bool aabb_obb(const AABB &aabb, const OBB &obb);
 bool aabb_plane(const AABB &aabb, const Plane &plane);
+// OBB intersections
+bool obb_obb(const OBB &obb1, const OBB &obb2);
+bool obb_plane(const OBB &obb, const Plane &plane);
+bool plane_plane(const Plane &plane1, const Plane &plane2);
+
 } // namespace geom3D
 
 #endif // _H_GEOMETRY_3D_

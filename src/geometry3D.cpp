@@ -58,6 +58,13 @@ bool overlap_on_axis(const AABB &rect, const OBB &obb, const vec3 &axis) {
   return ((b.min <= a.max) && (a.min <= b.max));
 }
 
+bool overlap_on_axis(const OBB &obb1, const OBB &obb2, const vec3 &axis) {
+  Interval a = get_interval(obb1, axis);
+  Interval b = get_interval(obb2, axis);
+
+  return ((b.min <= a.max) && (a.min <= b.max));
+}
+
 float geom3D::length(const Line &line) {
   return magnitude(line.start - line.end);
 }
@@ -264,5 +271,43 @@ bool aabb_plane(const AABB &aabb, const Plane &plane) {
   float dist = dot - plane.distance;
 
   return fabsf(dist) <= pLen;
+}
+bool obb_obb(const OBB &obb1, const OBB &obb2) {
+  const float *o1 = obb1.orientation.asArray;
+  const float *o2 = obb2.orientation.asArray;
+
+  vec3 test[15] = {vec3{o1[0], o1[1], o1[2]}, vec3{o1[3], o1[4], o1[5]},
+                   vec3{o1[6], o1[7], o1[8]}, vec3{o2[0], o2[1], o2[2]},
+                   vec3{o2[3], o2[4], o2[5]}, vec3{o2[6], o2[7], o2[8]}};
+
+  for (int i = 0; i < 3; ++i) {
+    test[6 + i * 3 + 0] = cross(test[i], test[0]);
+    test[6 + i * 3 + 1] = cross(test[i], test[1]);
+    test[6 + i * 3 + 2] = cross(test[i], test[2]);
+  }
+  for (int i = 0; i < 15; ++i) {
+    if (!overlap_on_axis(obb1, obb2, test[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+bool obb_plane(const OBB &obb, const Plane &plane) {
+  const float *o = obb.orientation.asArray;
+  vec3 rot[] = {vec3{o[0], o[1], o[2]}, //
+                vec3{o[3], o[4], o[5]}, //
+                vec3{o[6], o[7], o[8]}};
+  vec3 normal = plane.normal;
+
+  float pLen = obb.size.x * fabsf(dot(normal, rot[0])) +
+               obb.size.y * fabsf(dot(normal, rot[1])) +
+               obb.size.z * fabsf(dot(normal, rot[2]));
+  float dist = dot(plane.normal, obb.position) - plane.distance;
+
+  return fabsf(dist) <= pLen;
+}
+bool plane_plane(const Plane &plane1, const Plane &plane2) {
+  vec3 d = cross(plane1.normal, plane2.normal);
+  return !CMP(dot(d, d), 0);
 }
 } // namespace geom3D
