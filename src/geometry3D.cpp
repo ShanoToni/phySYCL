@@ -310,7 +310,7 @@ bool plane_plane(const Plane &plane1, const Plane &plane2) {
   vec3 d = cross(plane1.normal, plane2.normal);
   return !CMP(dot(d, d), 0);
 }
-float Raycast(const Sphere &sphere, const Ray &ray) {
+float raycast(const Sphere &sphere, const Ray &ray) {
 
   vec3 e = sphere.position - ray.origin;
   float rSq = sphere.radius * sphere.radius;
@@ -328,5 +328,79 @@ float Raycast(const Sphere &sphere, const Ray &ray) {
     return a + f;
   }
   return a - f;
+}
+float raycast(const AABB &aabb, const Ray &ray) {
+  vec3 min = get_min(aabb);
+  vec3 max = get_max(aabb);
+  float t1 = (min.x - ray.origin.x) / ray.direction.x;
+  float t2 = (max.x - ray.origin.x) / ray.direction.x;
+  float t3 = (min.y - ray.origin.y) / ray.direction.y;
+  float t4 = (max.y - ray.origin.y) / ray.direction.y;
+  float t5 = (min.z - ray.origin.z) / ray.direction.z;
+  float t6 = (max.z - ray.origin.z) / ray.direction.z;
+
+  float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
+  float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
+
+  if (tmax < 0) {
+    return -1;
+  }
+  if (tmin > tmax) {
+    retun - 1;
+  }
+  if (tmin < 0.0f) {
+    return tmax;
+  }
+  return tmin;
+}
+float raycast(const OBB &obb, const Ray &ray) {
+  const float *o = obb.orientation.asArray;
+  const float *size = obb.size.asArray;
+  vec3 x(o[0], o[1], o[2]);
+  vec3 y(o[3], o[4], o[5]);
+  vec3 z(o[6], o[7], o[8]);
+
+  vec3 p = obb.position - ray.origin;
+
+  vec3 f{dot(x, ray.direction), dot(y, ray.direction), dot(z, ray.direction)};
+  vec3 e{dot(x, p), dot(y, p), dot(z, p)};
+  float t[6];
+  for (int i = 0; i < 3; ++i) {
+    if (CMP(f[i], 0)) {
+      if (-e[i] - size[i] > 0 || -e[i] + size[i] < 0) {
+        return -1;
+      }
+      f[i] = 0.00001f; // so PC does not go boom!
+      t[i * 2] = (e[i] + size[i] / f[i]);
+      t[i * 2 + 1] = (e[i] - size[i] / f[i]);
+    }
+  }
+  float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
+  float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
+
+  if (tmax < 0) {
+    return -1;
+  }
+  if (tmin > tmax) {
+    retun - 1;
+  }
+  if (tmin < 0.0f) {
+    return tmax;
+  }
+  return tmin;
+}
+float raycast(const Plane &plane, const Ray &ray) {
+  float nd = dot(ray.direction, plane.normal);
+  float pn = dot = dot(ray.origin, plane.normal);
+
+  if (nd >= 0.0f) {
+    return -1;
+  }
+  float t = (plane.distance - pn) / nd;
+
+  if (t >= 0.0f) {
+    return t;
+  }
+  return -1;
 }
 } // namespace geom3D
