@@ -3,7 +3,8 @@
 #include "geometry2D.hpp"
 #include <vector>
 
-struct QuadTreeData {
+struct QuadTreeData
+{
   void *object;
   geom2D::Rectangle2D bounds;
   bool flag;
@@ -11,7 +12,8 @@ struct QuadTreeData {
       : object(o), bounds(b), flag(false) {}
 };
 
-class QuadTreeNode {
+class QuadTreeNode
+{
 protected:
   std::vector<QuadTreeNode> children;
   std::vector<QuadTreeData *> contents;
