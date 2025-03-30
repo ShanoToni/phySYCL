@@ -58,6 +58,22 @@ namespace geom3D
     return result;
   }
 
+  Interval get_interval(const Triangle &tri, const vec3 &axis)
+  {
+    Interval result;
+
+    result.min = dot(axis, tri.points[0]);
+    result.max = result.min;
+
+    for (int i = 0; i < 3; ++i)
+    {
+      float value = dot(axis, tri.points[i]);
+      result.min = fminf(result.min, value);
+      result.max = fmaxf(result.max, value);
+    }
+    return result;
+  }
+
   bool overlap_on_axis(const AABB &rect, const OBB &obb, const vec3 &axis)
   {
     Interval a = get_interval(rect, axis);
@@ -71,6 +87,50 @@ namespace geom3D
     Interval b = get_interval(obb2, axis);
 
     return ((b.min <= a.max) && (a.min <= b.max));
+  }
+
+  bool overlap_on_axis(const AABB &aabb, const Triangle &tri, const vec3 &axis)
+  {
+    Interval a = get_interval(aabb, axis);
+    Interval b = get_interval(tri, axis);
+
+    return (b.min <= a.max) && (a.min <= b.max);
+  }
+
+  bool overlap_on_axis(const OBB &obb, const Triangle &tri, const vec3 &axis)
+  {
+    Interval a = get_interval(obb, axis);
+    Interval b = get_interval(tri, axis);
+    return ((b.min <= a.max) && (a.min <= b.max));
+  }
+
+  bool overlap_on_axis(const Triangle &tri1, const Triangle &tri2, const vec3 &axis)
+  {
+    Interval a = get_interval(tri1, axis);
+    Interval b = get_interval(tri2, axis);
+
+    return ((b.min <= a.max) && (a.min <= b.max));
+  }
+
+  vec3 sat_cross_edge(const vec3 &a, const vec3 &b, const vec3 &c, const vec3 &d)
+  {
+    vec3 ab = a - b;
+    vec3 cd = c - d;
+    vec3 result = cross(ab, cd);
+    if (!CMP(magnitude_sq(result), 0.0f))
+    {
+      return result;
+    }
+    else
+    {
+      vec3 axis = cross(ab, c - a);
+      result = cross(ab, axis);
+      if (!CMP(magnitude_sq(result), 0.0f))
+      {
+        return result;
+      }
+    }
+    return vec3();
   }
 
   float geom3D::length(const Line &line)
@@ -243,6 +303,67 @@ namespace geom3D
     t = fmaxf(t, 0.0f);
     return Point(ray.origin + ray.direction * t);
   }
+  bool point_in_triagle(const Triangle &tri, const Point &point)
+  {
+    vec3 a = tri.a - point;
+    vec3 b = tri.b - point;
+    vec3 c = tri.c - point;
+
+    vec3 normPBC = cross(b, c);
+    vec3 normPCA = cross(c, a);
+    vec3 normPAB = cross(a, b);
+
+    if (dot(normPBC, normPCA) < 0.0f)
+    {
+      return false;
+    }
+    else if (dot(normPBC, normPAB) < 0.0f)
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+  Plane from_triangle(const Triangle &tri)
+  {
+    Plane result;
+
+    result.normal = normalized(cross(tri.b - tri.a, tri.c - tri.a));
+    result.distance = dot(result.normal, tri.a);
+
+    return result;
+  }
+
+  Point closest_point(const Triangle &tri, const Point &p)
+  {
+    Plane plane = from_triangle(tri);
+    Point closest = closest_point(plane, p);
+
+    if (point_in_triagle(tri, closest))
+    {
+      return closest;
+    }
+
+    Point c1 = closest_point(Line(tri.a, tri.b), p);
+    Point c2 = closest_point(Line(tri.b, tri.c), p);
+    Point c3 = closest_point(Line(tri.c, tri.a), p);
+
+    float magSq1 = magnitude_sq(p - c1);
+    float magSq2 = magnitude_sq(p - c2);
+    float magSq3 = magnitude_sq(p - c3);
+
+    if (magSq1 < magSq2 && magSq1 < magSq3)
+    {
+      return c1;
+    }
+    else if (magSq2 < magSq1 && magSq2 < magSq3)
+    {
+      return c2;
+    }
+    return c3;
+  }
+
   bool sphere_sphere(const Sphere &sphere1, const Sphere &sphere2)
   {
     float sumRadii = sphere1.radius + sphere2.radius;
@@ -270,6 +391,13 @@ namespace geom3D
     float distSq = magnitude_sq(sphere.position - closestPoint);
     float radiusSq = sphere.radius * sphere.radius;
     return distSq < radiusSq;
+  }
+  bool sphere_triangle(const Sphere &sphere, const Triangle &tri)
+  {
+    Point closest = closest_point(tri, sphere.position);
+    float magSq = magnitude_sq(closest - sphere.position);
+
+    return magSq <= sphere.radius * sphere.radius;
   }
   bool aabb_aabb(const AABB &aabb1, const AABB &aabb2)
   {
@@ -319,6 +447,33 @@ namespace geom3D
 
     return fabsf(dist) <= pLen;
   }
+  bool aabb_triangle(const AABB &aabb, const Triangle &tri)
+  {
+    vec3 f0 = tri.b - tri.a;
+    vec3 f1 = tri.c - tri.b;
+    vec3 f2 = tri.a - tri.c;
+
+    vec3 u0{1.0f, 0.0f, 0.0f};
+    vec3 u1{0.0f, 1.0f, 0.0f};
+    vec3 u2{0.0f, 0.0f, 1.0f};
+
+    vec3 test[13] = {
+        u0,
+        u1,
+        u2,
+        cross(f0, f1),
+        cross(u0, f0), cross(u0, f1), cross(u0, f2),
+        cross(u1, f0), cross(u1, f1), cross(u1, f2),
+        cross(u2, f0), cross(u2, f1), cross(u2, f2)};
+
+    for (int i = 0; i < 13; ++i)
+    {
+      if (!overlap_on_axis(aabb, tri, test[i]))
+        return false;
+    }
+
+    return true;
+  }
   bool obb_obb(const OBB &obb1, const OBB &obb2)
   {
     const float *o1 = obb1.orientation.asArray;
@@ -358,11 +513,123 @@ namespace geom3D
 
     return fabsf(dist) <= pLen;
   }
+
+  bool obb_triangle(const OBB &obb, const Triangle &tri)
+  {
+    vec3 f0 = tri.b - tri.a;
+    vec3 f1 = tri.c - tri.b;
+    vec3 f2 = tri.a - tri.c;
+
+    const float *orientation = obb.orientation.asArray;
+    vec3 u0{orientation[0], orientation[1], orientation[2]};
+    vec3 u1{orientation[2], orientation[3], orientation[4]};
+    vec3 u2{orientation[6], orientation[7], orientation[8]};
+
+    vec3 test[13] = {
+        u0,
+        u1,
+        u2,
+        cross(f0, f1),
+        cross(u0, f0), cross(u0, f1), cross(u0, f2),
+        cross(u1, f0), cross(u1, f1), cross(u1, f2),
+        cross(u2, f0), cross(u2, f1), cross(u2, f2)};
+
+    for (int i = 0; i < 13; ++i)
+    {
+      if (!overlap_on_axis(obb, tri, test[i]))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
   bool plane_plane(const Plane &plane1, const Plane &plane2)
   {
     vec3 d = cross(plane1.normal, plane2.normal);
     return !CMP(dot(d, d), 0);
   }
+
+  bool plane_triangle(const Plane &plane, const Triangle &tri)
+  {
+    float side1 = plane_equation(tri.a, plane);
+    float side2 = plane_equation(tri.b, plane);
+    float side3 = plane_equation(tri.c, plane);
+
+    if (CMP(side1, 0.0f) && CMP(side2, 0.0f) && CMP(side3, 0.0f))
+    {
+      return true;
+    }
+
+    if (side1 > 0 && side2 > 0 && side3 > 0)
+    {
+      return false;
+    }
+
+    if (side1 < 0 && side2 < 0 && side3 < 0)
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool triangle_triangle(const Triangle &tri1, const Triangle tri2)
+  {
+    vec3 t1_f0 = tri1.b - tri1.a;
+    vec3 t1_f1 = tri1.c - tri1.b;
+    vec3 t1_f2 = tri1.a - tri1.c;
+
+    vec3 t2_f0 = tri2.b - tri2.a;
+    vec3 t2_f1 = tri2.c - tri2.b;
+    vec3 t2_f2 = tri2.a - tri2.c;
+
+    vec3 axisToTest[] = {
+        cross(t1_f0, t1_f1),
+        cross(t2_f0, t2_f1),
+        cross(t2_f0, t1_f0), cross(t2_f0, t1_f1),
+        cross(t2_f0, t1_f2), cross(t2_f1, t1_f0),
+        cross(t2_f1, t1_f1), cross(t2_f1, t1_f2),
+        cross(t2_f2, t1_f0), cross(t2_f2, t1_f1),
+        cross(t2_f2, t1_f2)};
+
+    for (int i = 0; i < 11; ++i)
+    {
+      if (!overlap_on_axis(tri1, tri2, axisToTest[i]))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool triangle_triangle_robust(const Triangle &tri1, const Triangle tri2)
+  {
+
+    vec3 axisToTest[] = {
+        sat_cross_edge(tri1.a, tri1.b, tri1.b, tri1.c),
+        sat_cross_edge(tri2.a, tri2.b, tri2.b, tri2.c),
+        sat_cross_edge(tri2.a, tri2.b, tri1.a, tri1.b),
+        sat_cross_edge(tri2.a, tri2.b, tri1.b, tri1.c),
+        sat_cross_edge(tri2.a, tri2.b, tri1.c, tri1.a),
+        sat_cross_edge(tri2.b, tri2.c, tri1.a, tri1.b),
+        sat_cross_edge(tri2.b, tri2.c, tri1.b, tri1.c),
+        sat_cross_edge(tri2.b, tri2.c, tri1.c, tri1.a),
+        sat_cross_edge(tri2.c, tri2.a, tri1.a, tri1.b),
+        sat_cross_edge(tri2.c, tri2.a, tri1.b, tri1.c),
+        sat_cross_edge(tri2.c, tri2.a, tri1.c, tri1.a)};
+
+    for (int i = 0; i < 11; ++i)
+    {
+      if (!overlap_on_axis(tri1, tri2, axisToTest[i]))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
   float raycast(const Sphere &sphere, const Ray &ray)
   {
 

@@ -96,8 +96,13 @@ namespace geom3D
 
   Interval get_interval(const AABB &rect, const vec3 &axis);
   Interval get_interval(const OBB &obb, const vec3 &axis);
+  Interval get_interval(const Triangle &tri, const vec3 &axis);
   bool overlap_on_axis(const AABB &rect, const OBB &obb, const vec3 &axis);
   bool overlap_on_axis(const OBB &obb1, const OBB &obb2, const vec3 &axis);
+  bool overlap_on_axis(const AABB &aabb, const Triangle &tri, const vec3 &axis);
+  bool overlap_on_axis(const OBB &obb, const Triangle &tri, const vec3 &axis);
+  bool overlap_on_axis(const Triangle &tri1, const Triangle &tri2, const vec3 &axis);
+  vec3 sat_cross_edge(const vec3 &a, const vec3 &b, const vec3 &c, const vec3 &d);
 
   float length(const Line &line);
   float length_sq(const Line &line);
@@ -123,6 +128,9 @@ namespace geom3D
   bool point_on_line(const Point &point, const Line &line);
   bool point_on_ray(const Point &point, const Ray &ray);
   Point closest_point(const Ray &ray, const Point &point);
+  bool point_in_triagle(const Triangle &tri, const Point &point);
+  Plane from_triangle(const Triangle &tri);
+  Point closest_point(const Triangle &tri, const Point &p);
 
   // 3D intersections
   // sphere intersections
@@ -130,14 +138,22 @@ namespace geom3D
   bool sphere_AABB(const Sphere &sphere, const AABB &aabb);
   bool sphere_OBB(const Sphere &sphere, const OBB &obb);
   bool sphere_plane(const Sphere &sphere, const Plane &plane);
+  bool sphere_triangle(const Sphere &sphere, const Triangle &tri);
   // AABB intersections
   bool aabb_aabb(const AABB &aabb1, const AABB &aabb2);
   bool aabb_obb(const AABB &aabb, const OBB &obb);
   bool aabb_plane(const AABB &aabb, const Plane &plane);
+  bool aabb_triangle(const AABB &aabb, const Triangle &tri);
   // OBB intersections
   bool obb_obb(const OBB &obb1, const OBB &obb2);
   bool obb_plane(const OBB &obb, const Plane &plane);
+  bool obb_triangle(const OBB &obb, const Triangle &tri);
+  // Plane intersections
   bool plane_plane(const Plane &plane1, const Plane &plane2);
+  bool plane_triangle(const Plane &plane, const Triangle &tri);
+  // Triangle intersections
+  bool triangle_triangle(const Triangle &tri1, const Triangle tri2);
+  bool triangle_triangle_robust(const Triangle &tri1, const Triangle tri2);
   // Raycast
   float raycast(const Sphere &sphere, const Ray &ray);
   float raycast(const AABB &aabb, const Ray &ray);
@@ -145,7 +161,9 @@ namespace geom3D
   float raycast(const Plane &plane, const Ray &ray);
   // Linetest
   bool linetest(const Sphere &sphere, const Line &line);
-  bool linetest(const AABB &sphere, const Line &line);
+  bool linetest(const AABB &aabb, const Line &line);
+  bool linetest(const OBB &obb, const Line &line);
+  bool linetest(const Plane &plane, const Line &line);
 
 } // namespace geom3D
 
