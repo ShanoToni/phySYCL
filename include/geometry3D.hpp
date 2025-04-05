@@ -94,6 +94,33 @@ namespace geom3D
     float max;
   };
 
+  typedef struct BVHNode
+  {
+    AABB bounds;
+    BVHNode *children;
+    int numTriangles;
+    int *triangles;
+    BVHNode() : children(0), numTriangles(0), triangles(0) {};
+  } BVHNode;
+
+  typedef struct Mesh
+  {
+    int numTriangles;
+    union
+    {
+      Triangle *tri;
+      Point *vertices;
+      float *values;
+    };
+
+    BVHNode *accelerator;
+    Mesh() : numTriangles(0), values(0), accelerator(0) {}
+  } Mesh;
+
+  void accelerate_mesh(Mesh &mesh);
+  void split_BVH_node(BVHNode *node, const Mesh &model, int depth);
+  void free_BVH_node(BVHNode *node);
+
   Interval get_interval(const AABB &rect, const vec3 &axis);
   Interval get_interval(const OBB &obb, const vec3 &axis);
   Interval get_interval(const Triangle &tri, const vec3 &axis);
@@ -154,16 +181,22 @@ namespace geom3D
   // Triangle intersections
   bool triangle_triangle(const Triangle &tri1, const Triangle tri2);
   bool triangle_triangle_robust(const Triangle &tri1, const Triangle tri2);
+  // Mesh intersections
+  bool mesh_aabb(const Mesh &mesh, const AABB &aabb);
   // Raycast
   float raycast(const Sphere &sphere, const Ray &ray);
   float raycast(const AABB &aabb, const Ray &ray);
   float raycast(const OBB &obb, const Ray &ray);
   float raycast(const Plane &plane, const Ray &ray);
+  float raycast(const Mesh &mesh, const Ray &ray);
+  vec3 barycentric(const Point &point, const Triangle &tri);
+  float raycast(const Triangle &tri, const Ray &ray);
   // Linetest
   bool linetest(const Sphere &sphere, const Line &line);
   bool linetest(const AABB &aabb, const Line &line);
   bool linetest(const OBB &obb, const Line &line);
   bool linetest(const Plane &plane, const Line &line);
+  bool linetest(const Triangle &tri, const Line &line);
 
 } // namespace geom3D
 

@@ -1,12 +1,136 @@
 #include "geometry3D.hpp"
 #include <cmath>
 #include <float.h>
+#include <list>
 
 #define CMP(x, y) \
   (fabsf((x) - (y)) <= FLT_EPSILON * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))))
 
 namespace geom3D
 {
+  void accelerate_mesh(Mesh &mesh)
+  {
+    if (mesh.accelerator != 0)
+    {
+      return;
+    }
+
+    vec3 min = mesh.vertices[0];
+    vec3 max = mesh.vertices[0];
+
+    for (int i = 1; i < mesh.numTriangles * 3; ++i)
+    {
+      min.x = fminf(mesh.vertices[i].x, min.x);
+      max.x = fminf(mesh.vertices[i].x, max.x);
+      min.y = fminf(mesh.vertices[i].y, min.y);
+      max.y = fminf(mesh.vertices[i].y, max.y);
+      min.z = fminf(mesh.vertices[i].z, min.z);
+      max.z = fminf(mesh.vertices[i].z, max.z);
+    }
+
+    mesh.accelerator = new BVHNode();
+    mesh.accelerator->bounds = from_min_max(min, max);
+    mesh.accelerator->numTriangles = mesh.numTriangles;
+    mesh.accelerator->triangles = new int(mesh.numTriangles);
+
+    for (int i = 0; i < mesh.numTriangles; ++i)
+    {
+      mesh.accelerator->triangles[i] = i;
+    }
+
+    split_BVH_node(mesh.accelerator, mesh, 3);
+  }
+
+  void split_BVH_node(BVHNode *node, const Mesh &model, int depth)
+  {
+    if (depth-- == 0)
+    {
+      return;
+    }
+    if (node->children == 0)
+    {
+      if (node->numTriangles > 0)
+      {
+        node->children = new BVHNode[8];
+
+        vec3 c = node->bounds.origin;
+        vec3 e = node->bounds.size * 0.5f;
+
+        node->children[0].bounds = AABB(c + vec3{-e.x, +e.y, -e.z}, e);
+        node->children[1].bounds = AABB(c + vec3{+e.x, +e.y, -e.z}, e);
+        node->children[2].bounds = AABB(c + vec3{-e.x, +e.y, +e.z}, e);
+        node->children[3].bounds = AABB(c + vec3{+e.x, +e.y, +e.z}, e);
+        node->children[4].bounds = AABB(c + vec3{-e.x, -e.y, -e.z}, e);
+        node->children[5].bounds = AABB(c + vec3{+e.x, -e.y, -e.z}, e);
+        node->children[6].bounds = AABB(c + vec3{+e.x, -e.y, -e.z}, e);
+        node->children[7].bounds = AABB(c + vec3{+e.x, -e.y, +e.z}, e);
+
+        if (node->children != 0 && node->numTriangles > 0)
+        {
+          for (int i = 0; i < 8; ++i)
+          {
+            node->children[i].numTriangles = 0;
+            for (int j = 0; j < node->numTriangles; ++j)
+            {
+              Triangle t = model.tri[node->triangles[j]];
+
+              if (aabb_triangle(node->children[i].bounds, t))
+              {
+                node->children[i].numTriangles += 1;
+              }
+            }
+
+            if (node->children[i].numTriangles == 0)
+            {
+              continue;
+            }
+
+            node->children[i].triangles = new int[node->children[i].numTriangles];
+            int index = 0;
+
+            for (int j = 0; j < node->numTriangles; ++j)
+            {
+              Triangle t = model.tri[node->triangles[j]];
+              if (aabb_triangle(node->children[i].bounds, t))
+              {
+                node->children[i].triangles[index++] = node->triangles[j];
+              }
+            }
+          }
+
+          node->numTriangles = 0;
+          delete[] node->triangles;
+          node->triangles = 0;
+
+          for (int i = 0; i < 8; ++i)
+          {
+            split_BVH_node(&node->children[i], model, depth);
+          }
+        }
+      }
+    }
+  }
+
+  void free_BVH_node(BVHNode *node)
+  {
+    if (node->children != 0)
+    {
+      for (int i = 0; i < 8; ++i)
+      {
+        free_BVH_node((&node->children[i]));
+      }
+      delete[] node->children;
+      node->children = 0;
+    }
+
+    if (node->numTriangles != 0 || node->triangles != 0)
+    {
+      delete[] node->triangles;
+      node->triangles = 0;
+      node->numTriangles = 0;
+    }
+  }
+
   Interval get_interval(const AABB &rect, const vec3 &axis)
   {
     vec3 i = get_min(rect);
@@ -630,6 +754,51 @@ namespace geom3D
     return true;
   }
 
+  bool mesh_aabb(const Mesh &mesh, const AABB &aabb)
+  {
+    if (mesh.accelerator == 0)
+    {
+      for (int i = 0; i < mesh.numTriangles; ++i)
+      {
+        if (aabb_triangle(aabb, mesh.tri[i]))
+        {
+          return true;
+        }
+      }
+    }
+    else
+    {
+      std::list<BVHNode *> toProcess;
+      toProcess.push_front(mesh.accelerator);
+      while (!toProcess.empty())
+      {
+        BVHNode *iterator = *(toProcess.begin());
+        toProcess.erase(toProcess.begin());
+        if (iterator->numTriangles >= 0)
+        {
+          for (int i = 0; i < iterator->numTriangles; ++i)
+          {
+            if (aabb_triangle(aabb, mesh.tri[iterator->triangles[i]]))
+            {
+              return true;
+            }
+          }
+        }
+        if (iterator->children != 0)
+        {
+          for (int i = 8 - 1; i >= 0; --i)
+          {
+            if (aabb_aabb(iterator->children->bounds, aabb))
+            {
+              toProcess.push_front(&iterator->children[i]);
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   float raycast(const Sphere &sphere, const Ray &ray)
   {
 
@@ -742,6 +911,98 @@ namespace geom3D
     }
     return -1;
   }
+
+  float raycast(const Mesh &mesh, const Ray &ray)
+  {
+    if (mesh.accelerator == 0)
+    {
+      for (int i = 0; i < mesh.numTriangles; ++i)
+      {
+        float result = raycast(mesh.tri[i], ray);
+        if (result >= 0)
+        {
+          return result;
+        }
+      }
+    }
+    else
+    {
+      std::list<BVHNode *> toProcess;
+      toProcess.push_front(mesh.accelerator);
+      while (!toProcess.empty())
+      {
+        BVHNode *iterator = *(toProcess.begin());
+        toProcess.erase(toProcess.begin());
+        if (iterator->numTriangles >= 0)
+        {
+          for (int i = 0; i < iterator->numTriangles; ++i)
+          {
+            float r = raycast(mesh.tri[iterator->triangles[i]], ray);
+            if (r >= 0)
+            {
+              return r;
+            }
+          }
+        }
+        if (iterator->children != 0)
+        {
+          for (int i = 8 - 1; i >= 0; --i)
+          {
+            if (raycast(iterator->children[i].bounds, ray) >= 0)
+            {
+              toProcess.push_front(&iterator->children[i]);
+            }
+          }
+        }
+      }
+    }
+    return -1;
+  }
+
+  vec3 barycentric(const Point &point, const Triangle &tri)
+  {
+    vec3 ap = point - tri.a;
+    vec3 bp = point - tri.b;
+    vec3 cp = point - tri.c;
+
+    vec3 ab = tri.b - tri.a;
+    vec3 ac = tri.c - tri.a;
+    vec3 bc = tri.c - tri.b;
+    vec3 cb = tri.b - tri.c;
+    vec3 ca = tri.a - tri.c;
+
+    vec3 v = ab - project(ab, cb);
+    float a = 1.0f - (dot(v, ap) / dot(v, ab));
+
+    v = bc - project(bc, ac);
+    float b = 1.0f - (dot(v, ap) / dot(v, ab));
+
+    v = bc - project(ca, ab);
+    float c = 1.0f - (dot(v, cp) / dot(v, ca));
+
+    return vec3{a, b, c};
+  }
+
+  float raycast(const Triangle &tri, const Ray &ray)
+  {
+    Plane plane = from_triangle(tri);
+    float t = raycast(plane, ray);
+    if (t < 0.0f)
+    {
+      return t;
+    }
+    Point result = ray.origin + ray.direction * t;
+
+    vec3 bary = barycentric(result, tri);
+    if (bary.x >= 0.0f && bary.x <= 1.0f &&
+        bary.y >= 0.0f && bary.y <= 1.0f &&
+        bary.z >= 0.0f && bary.z <= 1.0f)
+    {
+      return t;
+    }
+    return -1.0f;
+  }
+
   bool linetest(const Sphere &sphere, const Line &line)
   {
 
@@ -775,5 +1036,15 @@ namespace geom3D
 
     float t = (plane.distance - nA) / nAB;
     return t >= 0.0f && t <= 1.0f;
+  }
+  bool linetest(const Triangle &tri, const Line &line)
+  {
+    Ray ray;
+    ray.origin = line.start;
+    ray.direction = normalized(line.end - line.start);
+
+    float t = raycast(tri, ray);
+
+    return t >= 0 && t * t <= length_sq(line);
   }
 } // namespace geom3D
